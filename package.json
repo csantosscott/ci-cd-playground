@@ -4,10 +4,11 @@
   "description": "Interactive CI/CD playground with live pipeline visualization",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Running tests...\" && sleep 2 && echo \"✅ All tests passed!\"",
-    "lint": "echo \"Running linter...\" && sleep 1 && echo \"✅ Linting passed!\"",
-    "build": "echo \"Building project...\" && sleep 3 && echo \"✅ Build completed!\"",
-    "deploy": "echo \"Deploying to production...\" && sleep 2 && echo \"🚀 Deployment successful!\""
+    "test": "echo \"🧪 Running comprehensive test suite...\" && sleep 2 && echo \"✅ All tests passed successfully!\"",
+    "lint": "echo \"🔍 Running linter checks...\" && sleep 1 && echo \"✅ Code linting completed successfully!\"", 
+    "build": "echo \"🏗️ Building production artifacts...\" && sleep 3 && echo \"✅ Build completed successfully!\"",
+    "deploy": "echo \"🚀 Deploying to production environment...\" && sleep 2 && echo \"✅ Deployment completed successfully!\"",
+    "install": "echo \"📦 Dependencies already installed\""
   },
   "keywords": ["ci-cd", "devops", "github-actions", "playground"],
   "author": "CI/CD Demo",
