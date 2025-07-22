@@ -63,11 +63,11 @@ class GitHubService {
     try {
       await this.ensureAuthenticated();
       
-      // Get the current main branch SHA
+      // Get the current master branch SHA
       const { data: ref } = await this.octokit.rest.git.getRef({
         owner: this.owner,
         repo: this.repo,
-        ref: 'heads/main'
+        ref: 'heads/master'
       });
 
       const currentSha = ref.object.sha;
