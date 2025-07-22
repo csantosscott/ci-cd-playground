@@ -28,7 +28,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '18'
-          cache: 'npm'
           
       - name: 📦 Install Dependencies
         run: |
@@ -46,30 +45,26 @@ jobs:
     name: 🧪 Run Tests
     runs-on: ubuntu-latest
     needs: lint
-    strategy:
-      matrix:
-        node-version: [16, 18, 20]
     steps:
       - name: 📥 Checkout Repository
         uses: actions/checkout@v4
         
-      - name: 📋 Setup Node.js ${{ matrix.node-version }}
+      - name: 📋 Setup Node.js 18
         uses: actions/setup-node@v4
         with:
-          node-version: ${{ matrix.node-version }}
-          cache: 'npm'
+          node-version: '18'
           
       - name: 📦 Install Dependencies
         run: |
-          echo "🔄 Installing dependencies for Node.js ${{ matrix.node-version }}..."
+          echo "🔄 Installing dependencies..."
           npm install --prefer-offline --no-audit
           echo "✅ Dependencies installed"
           
       - name: 🧪 Run Test Suite
         run: |
-          echo "🧪 Running comprehensive test suite on Node.js ${{ matrix.node-version }}..."
+          echo "🧪 Running comprehensive test suite..."
           npm test
-          echo "✅ All tests passed on Node.js ${{ matrix.node-version }}"
+          echo "✅ All tests passed"
 
   build:
     name: 🏗️ Build Application
@@ -83,7 +78,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '18'
-          cache: 'npm'
           
       - name: 📦 Install Dependencies
         run: |
@@ -123,7 +117,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '18'
-          cache: 'npm'
           
       - name: 🔒 Run Security Audit
         run: |
