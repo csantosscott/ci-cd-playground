@@ -1,0 +1,19 @@
+{
+  "name": "ci-cd-playground",
+  "version": "1.0.0",
+  "description": "Interactive CI/CD playground with live pipeline visualization",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Running tests...\" && sleep 2 && echo \"✅ All tests passed!\"",
+    "lint": "echo \"Running linter...\" && sleep 1 && echo \"✅ Linting passed!\"",
+    "build": "echo \"Building project...\" && sleep 3 && echo \"✅ Build completed!\"",
+    "deploy": "echo \"Deploying to production...\" && sleep 2 && echo \"🚀 Deployment successful!\""
+  },
+  "keywords": ["ci-cd", "devops", "github-actions", "playground"],
+  "author": "CI/CD Demo",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/csantosscott/ci-cd-playground.git"
+  }
+}
