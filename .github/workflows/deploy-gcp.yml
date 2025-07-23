@@ -64,7 +64,7 @@ jobs:
             --region $REGION \
             --port 8080 \
             --allow-unauthenticated \
-            --set-env-vars="NODE_ENV=production,GITHUB_APP_ID=${{ secrets.APP_ID }},GITHUB_APP_INSTALLATION_ID=${{ secrets.APP_INSTALLATION }},GITHUB_REPO_OWNER=${{ secrets.REPO_OWNER }},GITHUB_REPO_NAME=${{ secrets.REPO_NAME }}" \
+            --set-env-vars="NODE_ENV=production,GITHUB_APP_ID=${{ secrets.APP_ID }},GITHUB_APP_INSTALLATION_ID=${{ secrets.APP_INSTALLATION }},GITHUB_REPO_OWNER=${{ secrets.REPO_OWNER }},GITHUB_REPO_NAME=${{ secrets.REPO_NAME }},GITHUB_APP_PRIVATE_KEY=${{ secrets.APP_PRIVATE_KEY }}" \
             --memory 1Gi \
             --cpu 1 \
             --max-instances 10

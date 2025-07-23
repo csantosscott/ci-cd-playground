@@ -14,9 +14,11 @@ COPY backend/package*.json ./
 # Install dependencies
 RUN npm install --only=production && npm cache clean --force
 
-# Copy backend source code and GitHub App private key
+# Copy backend source code
 COPY backend/ ./
-COPY *.pem ./
+
+# Create empty .pem file if none exists (for Cloud Run compatibility)
+RUN touch ./dummy.pem
 
 # Change ownership to nodejs user
 RUN chown -R backend:nodejs /app

@@ -18,8 +18,15 @@ class GitHubService {
 
   async initializeOctokit() {
     try {
-      // Read private key
-      const privateKey = fs.readFileSync(this.privateKeyPath, 'utf8');
+      // Read private key from file or environment variable
+      let privateKey;
+      if (process.env.GITHUB_APP_PRIVATE_KEY) {
+        // Use private key from environment variable (for Cloud Run)
+        privateKey = process.env.GITHUB_APP_PRIVATE_KEY.replace(/\\n/g, '\n');
+      } else {
+        // Use private key from file (for local development)
+        privateKey = fs.readFileSync(this.privateKeyPath, 'utf8');
+      }
       
       // Create JWT
       const now = Math.floor(Date.now() / 1000);
