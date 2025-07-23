@@ -4,7 +4,7 @@ An interactive CI/CD demonstration platform that showcases modern DevOps practic
 
 ## 🎯 What This Does
 
-This project demonstrates a complete CI/CD workflow where users can:
+This project demonstrates a complete CI/CD workflow where users can: 
 - **Click a button** to trigger a real GitHub Actions pipeline
 - **Watch live logs** stream in real-time via WebSocket
 - **See the entire process** from commit creation to deployment
