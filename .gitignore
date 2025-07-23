@@ -17,6 +17,10 @@ yarn-error.log*
 *.key
 private-key*
 
+# GCP Service Account Keys
+gcp-service-account-key.json
+*service-account*.json
+
 # Build outputs
 /frontend/.next/
 /frontend/out/

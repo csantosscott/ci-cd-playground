@@ -1,0 +1,145 @@
+name: 🚀 Deploy to GCP Cloud Run
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy to'
+        required: true
+        default: 'staging'
+        type: choice
+        options:
+          - staging
+          - production
+  push:
+    branches: [ master ]
+    paths-ignore:
+      - 'README.md'
+      - '*.md'
+
+env:
+  PROJECT_ID: ci-cd-demo-466714
+  REGION: us-central1
+  BACKEND_SERVICE: ci-cd-backend
+  FRONTEND_SERVICE: ci-cd-frontend
+
+jobs:
+  deploy-backend:
+    name: 🔧 Deploy Backend to Cloud Run
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📥 Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: 🔐 Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: 🛠️ Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: 🔧 Configure Docker to use gcloud
+        run: gcloud auth configure-docker
+
+      - name: 🏗️ Build Backend Docker Image
+        run: |
+          echo "🏗️ Building backend container image..."
+          docker build -f backend/Dockerfile -t gcr.io/$PROJECT_ID/$BACKEND_SERVICE:$GITHUB_SHA -t gcr.io/$PROJECT_ID/$BACKEND_SERVICE:latest .
+          echo "✅ Backend image built successfully"
+
+      - name: 📤 Push Backend Image to Container Registry
+        run: |
+          echo "📤 Pushing backend image to GCR..."
+          docker push gcr.io/$PROJECT_ID/$BACKEND_SERVICE:$GITHUB_SHA
+          docker push gcr.io/$PROJECT_ID/$BACKEND_SERVICE:latest
+          echo "✅ Backend image pushed successfully"
+
+      - name: 🚀 Deploy Backend to Cloud Run
+        run: |
+          echo "🚀 Deploying backend to Cloud Run..."
+          gcloud run deploy $BACKEND_SERVICE \
+            --image gcr.io/$PROJECT_ID/$BACKEND_SERVICE:$GITHUB_SHA \
+            --platform managed \
+            --region $REGION \
+            --port 8080 \
+            --allow-unauthenticated \
+            --set-env-vars="NODE_ENV=production,GITHUB_APP_ID=${{ secrets.APP_ID }},GITHUB_APP_INSTALLATION_ID=${{ secrets.APP_INSTALLATION }},GITHUB_REPO_OWNER=${{ secrets.REPO_OWNER }},GITHUB_REPO_NAME=${{ secrets.REPO_NAME }}" \
+            --memory 1Gi \
+            --cpu 1 \
+            --max-instances 10
+          echo "✅ Backend deployed successfully"
+
+      - name: 📋 Get Backend Service URL
+        id: backend-url
+        run: |
+          BACKEND_URL=$(gcloud run services describe $BACKEND_SERVICE --platform managed --region $REGION --format 'value(status.url)')
+          echo "backend_url=$BACKEND_URL" >> $GITHUB_OUTPUT
+          echo "🔗 Backend URL: $BACKEND_URL"
+
+    outputs:
+      backend_url: ${{ steps.backend-url.outputs.backend_url }}
+
+  deploy-frontend:
+    name: 🎨 Deploy Frontend to Cloud Run
+    runs-on: ubuntu-latest
+    needs: deploy-backend
+    steps:
+      - name: 📥 Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: 🔐 Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: 🛠️ Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: 🔧 Configure Docker to use gcloud
+        run: gcloud auth configure-docker
+
+      - name: 🏗️ Build Frontend Docker Image
+        env:
+          BACKEND_URL: ${{ needs.deploy-backend.outputs.backend_url }}
+        run: |
+          echo "🏗️ Building frontend container image..."
+          echo "🔗 Using backend URL: $BACKEND_URL"
+          docker build -f frontend/Dockerfile -t gcr.io/$PROJECT_ID/$FRONTEND_SERVICE:$GITHUB_SHA -t gcr.io/$PROJECT_ID/$FRONTEND_SERVICE:latest .
+          echo "✅ Frontend image built successfully"
+
+      - name: 📤 Push Frontend Image to Container Registry
+        run: |
+          echo "📤 Pushing frontend image to GCR..."
+          docker push gcr.io/$PROJECT_ID/$FRONTEND_SERVICE:$GITHUB_SHA
+          docker push gcr.io/$PROJECT_ID/$FRONTEND_SERVICE:latest
+          echo "✅ Frontend image pushed successfully"
+
+      - name: 🚀 Deploy Frontend to Cloud Run
+        run: |
+          echo "🚀 Deploying frontend to Cloud Run..."
+          gcloud run deploy $FRONTEND_SERVICE \
+            --image gcr.io/$PROJECT_ID/$FRONTEND_SERVICE:$GITHUB_SHA \
+            --platform managed \
+            --region $REGION \
+            --port 80 \
+            --allow-unauthenticated \
+            --memory 1Gi \
+            --cpu 1 \
+            --max-instances 10
+          echo "✅ Frontend deployed successfully"
+
+      - name: 📋 Get Frontend Service URL
+        id: frontend-url
+        run: |
+          FRONTEND_URL=$(gcloud run services describe $FRONTEND_SERVICE --platform managed --region $REGION --format 'value(status.url)')
+          echo "frontend_url=$FRONTEND_URL" >> $GITHUB_OUTPUT
+          echo "🔗 Frontend URL: $FRONTEND_URL"
+
+      - name: 🎉 Deployment Summary
+        run: |
+          echo "🎉 Deployment Complete!"
+          echo "====================="
+          echo "✅ Backend: ${{ needs.deploy-backend.outputs.backend_url }}"
+          echo "✅ Frontend: ${{ steps.frontend-url.outputs.frontend_url }}"
+          echo "🚀 Your CI/CD Playground is now live on GCP Cloud Run!"
