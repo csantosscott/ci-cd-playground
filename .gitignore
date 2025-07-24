@@ -41,3 +41,6 @@ logs/
 
 # Docker
 docker-compose.override.yml
+
+# Cloud setup documentation (contains sensitive information)
+gcloud.md

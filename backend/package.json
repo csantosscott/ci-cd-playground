@@ -15,7 +15,8 @@
     "cors": "^2.8.5",
     "dotenv": "^16.3.1",
     "jsonwebtoken": "^9.0.2",
-    "fs": "^0.0.1-security"
+    "fs": "^0.0.1-security",
+    "@google-cloud/secret-manager": "^5.0.1"
   },
   "devDependencies": {
     "nodemon": "^3.0.1"

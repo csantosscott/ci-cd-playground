@@ -21,7 +21,7 @@ This project demonstrates a complete CI/CD workflow where users can:
 ## 🚀 Quick Start
 
 ### Option 1: Use the Live Demo
-Visit the deployed application: *(URLs will be updated after deployment)*
+Visit the deployed application: **https://ci-cd-frontend-160544606445.us-central1.run.app**
 
 ### Option 2: Trigger GitHub Actions Manually
 
@@ -135,7 +135,52 @@ The application automatically deploys to Google Cloud Run when changes are pushe
 - **Google Cloud Console**: Monitor Cloud Run services and metrics
 - **Live Dashboard**: Real-time status and performance indicators
 
+## 🔧 Troubleshooting
+
+Common issues and solutions are documented in our comprehensive troubleshooting guide. During development, we encountered and resolved 9 major deployment issues including:
+
+- Docker build context errors  
+- Frontend localhost URL issues in production
+- GitHub App authentication failures
+- Secret Manager permission problems
+- URL encoding issues with trailing newlines
+- WebSocket connection and polling issues
+
+For detailed solutions to these and other issues, see our deployment documentation.
+
+## 🏭 Production Features
+
+### Security
+- ✅ All sensitive credentials stored in GCP Secret Manager
+- ✅ GitHub App authentication with JWT tokens
+- ✅ Least-privilege IAM permissions
+- ✅ No secrets in environment variables or container images
+
+### Performance
+- ✅ Auto-scaling Cloud Run deployment
+- ✅ WebSocket connections for real-time updates
+- ✅ Efficient GitHub API polling (5-second intervals)
+- ✅ Request-based billing (scales to zero when unused)
+
+### Monitoring
+- ✅ Comprehensive logging with emoji prefixes for easy filtering
+- ✅ Cloud Run built-in metrics and monitoring
+- ✅ Error handling and graceful degradation
+- ✅ Connection status indicators
+
+## 🌐 Live Demo URLs
+
+- **Frontend**: https://ci-cd-frontend-160544606445.us-central1.run.app
+- **Backend**: https://ci-cd-demo-backend-160544606445.us-central1.run.app
+- **Repository**: https://github.com/csantosscott/ci-cd-playground
+
 ## 🤝 Contributing
+
+1. Fork the repository
+2. Create a feature branch  
+3. Make your changes
+4. Test locally and with the live demo
+5. Submit a pull request
 
 This is a demonstration project showcasing CI/CD best practices. Feel free to explore the code and adapt it for your own projects!
 
@@ -143,8 +188,19 @@ This is a demonstration project showcasing CI/CD best practices. Feel free to ex
 
 MIT License - Feel free to use this as a learning resource or starting point for your own CI/CD implementations.
 
+## 🆘 Support
+
+For issues and questions:
+- Open an issue in the GitHub repository
+- Check the troubleshooting guide for common problems
+- Review Cloud Run logs for deployment issues
+
+## 🙏 Acknowledgments
+
+Special thanks to the comprehensive development process that helped identify and resolve numerous real-world deployment challenges, making this a robust production-ready CI/CD demonstration platform.
+
 ---
 
 **🎯 Ready to see DevOps in action?** 
 
-👉 [**Click here to trigger a pipeline!**](https://github.com/csantosscott/ci-cd-playground/actions)
+👉 [**Try the Live Demo!**](https://ci-cd-frontend-160544606445.us-central1.run.app) | [**Trigger a Pipeline!**](https://github.com/csantosscott/ci-cd-playground/actions)

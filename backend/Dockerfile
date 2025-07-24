@@ -9,16 +9,15 @@ RUN addgroup -g 1001 -S nodejs
 RUN adduser -S backend -u 1001
 
 # Copy package files
-COPY backend/package*.json ./
+COPY package*.json ./
 
 # Install dependencies
 RUN npm install --only=production && npm cache clean --force
 
 # Copy backend source code
-COPY backend/ ./
+COPY . ./
 
-# Create empty .pem file if none exists (for Cloud Run compatibility)
-RUN touch ./dummy.pem
+# No .pem files needed - using environment variables for GitHub App auth
 
 # Change ownership to nodejs user
 RUN chown -R backend:nodejs /app

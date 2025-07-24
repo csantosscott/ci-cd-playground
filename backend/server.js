@@ -12,6 +12,24 @@ const PORT = process.env.PORT || 8080;
 // Initialize GitHub service
 const github = new GitHubService();
 
+// Wait for GitHub service to initialize before starting server
+const waitForGitHubInit = async () => {
+  let attempts = 0;
+  const maxAttempts = 30; // Wait up to 30 seconds
+  
+  while (!github.initialized && attempts < maxAttempts) {
+    console.log(`⏱️ Waiting for GitHub service initialization... (${attempts + 1}/${maxAttempts})`);
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    attempts++;
+  }
+  
+  if (github.initialized) {
+    console.log('✅ GitHub service ready - full functionality enabled');
+  } else {
+    console.log('⚠️ GitHub service initialization timeout - limited functionality');
+  }
+};
+
 // Middleware
 app.use(cors());
 app.use(express.json());
@@ -32,6 +50,13 @@ app.get('/api/status', (req, res) => {
 
 // Trigger CI/CD pipeline by creating a commit
 app.post('/api/trigger-pipeline', async (req, res) => {
+  if (!github.initialized) {
+    return res.status(503).json({
+      success: false,
+      error: 'GitHub service not available - check environment variables'
+    });
+  }
+  
   const { message } = req.body;
   const commitMessage = message || 'Trigger CI/CD pipeline from playground';
   
@@ -65,6 +90,12 @@ app.post('/api/trigger-pipeline', async (req, res) => {
 
 // Get workflow runs
 app.get('/api/workflow-runs', async (req, res) => {
+  if (!github.initialized) {
+    return res.status(503).json({
+      error: 'GitHub service not available - check environment variables'
+    });
+  }
+  
   const limit = parseInt(req.query.limit) || 10;
   
   try {
@@ -86,6 +117,12 @@ app.get('/api/workflow-runs', async (req, res) => {
 
 // Get workflow run jobs with details
 app.get('/api/workflow-runs/:runId/jobs', async (req, res) => {
+  if (!github.initialized) {
+    return res.status(503).json({
+      error: 'GitHub service not available - check environment variables'
+    });
+  }
+  
   const { runId } = req.params;
   
   try {
@@ -107,14 +144,28 @@ app.get('/api/workflow-runs/:runId/jobs', async (req, res) => {
 
 // Create HTTP server
 const server = http.createServer(app);
+console.log('🖥️ HTTP server created');
 
 // WebSocket server for live log streaming
-const wss = new WebSocketServer({ server });
+console.log('🔌 Creating WebSocket server...');
+const wss = new WebSocketServer({ 
+  server,
+  perMessageDeflate: false,
+  clientTracking: true
+});
+console.log('✅ WebSocket server created');
 
-// Initialize WebSocket manager
+// Initialize WebSocket manager (always create, even if GitHub is not available)
+console.log('🎛️ Initializing WebSocket manager...');
 const wsManager = new WebSocketManager(wss, github);
+console.log('✅ WebSocket manager initialized');
 
-server.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-  console.log(`WebSocket server ready for connections`);
+server.listen(PORT, async () => {
+  console.log(`🚀 Server running on port ${PORT}`);
+  console.log(`🔌 WebSocket server ready for connections on port ${PORT}`);
+  console.log(`📍 Environment: ${process.env.NODE_ENV || 'development'}`);
+  console.log(`🐙 GitHub service initialized: ${github.initialized ? '✅' : '❌'}`);
+  
+  // Wait for GitHub service to initialize
+  await waitForGitHubInit();
 });

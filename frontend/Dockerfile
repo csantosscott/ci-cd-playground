@@ -13,6 +13,18 @@ RUN npm install
 # Copy source code
 COPY . .
 
+# Accept build-time arguments
+ARG NEXT_PUBLIC_API_URL=https://ci-cd-demo-backend-160544606445.us-central1.run.app
+ARG NEXT_PUBLIC_WS_URL=wss://ci-cd-demo-backend-160544606445.us-central1.run.app
+
+# Set environment variables for build
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+ENV NEXT_PUBLIC_WS_URL=$NEXT_PUBLIC_WS_URL
+
+# Debug: Print environment variables
+RUN echo "Building with NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL"
+RUN echo "Building with NEXT_PUBLIC_WS_URL=$NEXT_PUBLIC_WS_URL"
+
 # Build the application
 RUN npm run build
 

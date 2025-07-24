@@ -72,6 +72,14 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children }
           setSocket(ws);
           setIsConnected(true);
           setConnectionStatus('connected');
+          
+          // Request latest run status immediately after connection
+          setTimeout(() => {
+            if (ws.readyState === WebSocket.OPEN) {
+              console.log('Requesting latest run status...');
+              ws.send(JSON.stringify({ type: 'get_latest_run' }));
+            }
+          }, 500); // Small delay to ensure connection is fully established
         };
 
         ws.onmessage = (event) => {
@@ -115,32 +123,36 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children }
   }, []);
 
   const handleWebSocketMessage = (data: any) => {
+    console.log('📥 Received WebSocket message:', data.type, data);
+    
     switch (data.type) {
       case 'connected':
         console.log('WebSocket connection established');
         break;
         
       case 'latest_run':
+        console.log('📋 Setting latest run:', data.run);
         setLatestRun(data.run);
         break;
         
       case 'workflow_update':
+        console.log('🔄 Workflow update received:', data.run.status, data.jobs.length, 'jobs');
         setLatestRun(data.run);
         setCurrentJobs(data.jobs);
         break;
         
       case 'workflow_completed':
+        console.log('✅ Workflow completed:', data.run);
         setLatestRun(data.run);
         setCurrentJobs(data.jobs);
-        console.log('Workflow completed:', data.run);
         break;
         
       case 'error':
-        console.error('WebSocket error:', data.message);
+        console.error('❌ WebSocket error:', data.message);
         break;
         
       default:
-        console.log('Unknown WebSocket message type:', data.type);
+        console.log('❓ Unknown WebSocket message type:', data.type);
     }
   };
 
