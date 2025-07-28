@@ -1,2 +1,2 @@
-CI/CD Pipeline triggered at: 2025-07-28T19:10:21.071Z
-Commit message: Test build after fixing Artifact Registry permissions
+CI/CD Pipeline triggered at: 2025-07-28T19:27:52.131Z
+Commit message: Testing complete workflow - both issues should be fixed
