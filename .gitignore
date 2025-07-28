@@ -42,5 +42,16 @@ logs/
 # Docker
 docker-compose.override.yml
 
-# Cloud setup documentation (contains sensitive information)
+# Project instructions and cloud setup documentation (contains sensitive information)
+claude.md
 gcloud.md
+
+# Temporary test files
+test_websocket.py
+websocket_test_env/
+websocket-test.js
+
+# Project planning and cleanup files
+monitoring-dashboard.yaml
+monitoring-procedures.md
+backend-service.yaml

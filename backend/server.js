@@ -34,9 +34,57 @@ const waitForGitHubInit = async () => {
 app.use(cors());
 app.use(express.json());
 
-// Health check endpoint
-app.get('/health', (req, res) => {
-  res.json({ status: 'OK', timestamp: new Date().toISOString() });
+// Enhanced health check endpoint for Cloud Run monitoring
+app.get('/health', async (req, res) => {
+  const health = {
+    status: 'OK',
+    timestamp: new Date().toISOString(),
+    version: '1.0.0',
+    checks: {
+      github: github.initialized ? 'healthy' : 'unhealthy',
+      websocket: wsManager ? 'healthy' : 'unhealthy',
+      memory: process.memoryUsage(),
+      uptime: process.uptime()
+    }
+  };
+
+  // Determine overall health status
+  const isHealthy = health.checks.github === 'healthy' && health.checks.websocket === 'healthy';
+  
+  if (!isHealthy) {
+    health.status = 'DEGRADED';
+    return res.status(503).json(health);
+  }
+
+  res.json(health);
+});
+
+// Readiness probe endpoint (for Cloud Run startup)
+app.get('/ready', (req, res) => {
+  if (github.initialized) {
+    res.json({ 
+      status: 'READY', 
+      timestamp: new Date().toISOString(),
+      github_initialized: true
+    });
+  } else {
+    res.status(503).json({ 
+      status: 'NOT_READY', 
+      timestamp: new Date().toISOString(),
+      github_initialized: false,
+      message: 'GitHub service still initializing'
+    });
+  }
+});
+
+// Liveness probe endpoint (for Cloud Run health monitoring)
+app.get('/live', (req, res) => {
+  res.json({ 
+    status: 'ALIVE', 
+    timestamp: new Date().toISOString(),
+    pid: process.pid,
+    uptime: process.uptime()
+  });
 });
 
 // API routes
@@ -46,6 +94,15 @@ app.get('/api/status', (req, res) => {
     version: '1.0.0',
     environment: process.env.NODE_ENV || 'development'
   });
+});
+
+// Test endpoint to simulate container failure (for testing recovery)
+app.post('/api/test/crash', (req, res) => {
+  res.json({ message: 'Simulating container crash in 5 seconds...' });
+  setTimeout(() => {
+    console.log('🧪 Test crash initiated - forcing process exit');
+    process.exit(1);
+  }, 5000);
 });
 
 // Trigger CI/CD pipeline by creating a commit

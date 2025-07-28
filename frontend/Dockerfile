@@ -37,15 +37,18 @@ RUN rm -rf /usr/share/nginx/html/*
 # Copy built application
 COPY --from=builder /app/out /usr/share/nginx/html
 
-# Copy custom nginx configuration
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+# Copy custom nginx configuration template
+COPY nginx.conf /etc/nginx/conf.d/default.conf.template
 
-# Expose port 80
-EXPOSE 80
+# Set default port for Cloud Run
+ENV PORT=3000
 
-# Health check
+# Expose the port
+EXPOSE $PORT
+
+# Health check (use PORT variable)
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD curl -f http://localhost/ || exit 1
+  CMD curl -f http://localhost:$PORT/ || exit 1
 
-# Start nginx
-CMD ["nginx", "-g", "daemon off;"]
+# Start nginx with port substitution
+CMD envsubst '$PORT' < /etc/nginx/conf.d/default.conf.template > /etc/nginx/conf.d/default.conf && nginx -g "daemon off;"
