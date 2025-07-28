@@ -55,3 +55,9 @@ websocket-test.js
 monitoring-dashboard.yaml
 monitoring-procedures.md
 backend-service.yaml
+
+# CI/CD trigger files (generated automatically)
+ci-status.txt
+
+# Local git configuration
+.gitconfig.local

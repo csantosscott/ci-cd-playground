@@ -15,6 +15,11 @@ class GitHubService {
     this.initialized = false;
     this.secretsService = new SecretsService();
     
+    // Token management
+    this.installationToken = null;
+    this.tokenExpiry = null;
+    this.refreshInterval = null;
+    
     // Initialize GitHub service
     this.initializeFromSecrets();
   }
@@ -102,22 +107,14 @@ class GitHubService {
       });
       console.log(`🔧 Octokit instance created with JWT`);
       
-      // Get installation access token
-      console.log(`🔧 Requesting installation access token for installation: ${this.installationId}`);
-      console.log(`🔧 Using JWT token: ${token.substring(0, 50)}...`);
-      
-      const { data } = await appOctokit.rest.apps.createInstallationAccessToken({
-        installation_id: parseInt(this.installationId),
-      });
-      console.log(`🔧 Installation access token received successfully`);
-      
-      // Create authenticated Octokit instance
-      this.octokit = new Octokit({
-        auth: data.token,
-      });
+      // Get installation access token with automatic refresh
+      await this.refreshInstallationToken(appOctokit);
       
       console.log('✅ GitHub App authentication successful');
       this.initialized = true;
+      
+      // Set up automatic token refresh (refresh every 50 minutes)
+      this.setupTokenRefresh();
     } catch (error) {
       console.error('❌ GitHub App authentication failed:', error.message);
       console.error('❌ Error details:', error.status, error.response?.data || error.code || 'No additional details');
@@ -129,37 +126,95 @@ class GitHubService {
     }
   }
 
+  async refreshInstallationToken(appOctokit = null) {
+    try {
+      // Create JWT if appOctokit not provided
+      if (!appOctokit) {
+        const now = Math.floor(Date.now() / 1000);
+        const payload = {
+          iat: now - 60,
+          exp: now + (10 * 60),
+          iss: parseInt(this.appId)
+        };
+        
+        const token = jwt.sign(payload, this.privateKey, { algorithm: 'RS256' });
+        appOctokit = new Octokit({
+          auth: token,
+        });
+      }
+      
+      console.log(`🔄 Refreshing installation access token for installation: ${this.installationId}`);
+      
+      const { data } = await appOctokit.rest.apps.createInstallationAccessToken({
+        installation_id: parseInt(this.installationId),
+      });
+      
+      // Store token and expiry time
+      this.installationToken = data.token;
+      this.tokenExpiry = new Date(data.expires_at);
+      
+      // Create new authenticated Octokit instance
+      this.octokit = new Octokit({
+        auth: data.token,
+      });
+      
+      console.log(`✅ Installation access token refreshed successfully`);
+      console.log(`🕒 Token expires at: ${this.tokenExpiry.toISOString()}`);
+      
+      return true;
+    } catch (error) {
+      console.error('❌ Failed to refresh installation token:', error.message);
+      return false;
+    }
+  }
+
+  setupTokenRefresh() {
+    // Clear existing interval if any
+    if (this.refreshInterval) {
+      clearInterval(this.refreshInterval);
+    }
+    
+    // Refresh token every 50 minutes (10 minutes before expiry)
+    const refreshIntervalMs = 50 * 60 * 1000; // 50 minutes
+    
+    this.refreshInterval = setInterval(async () => {
+      console.log('🔄 Automatic token refresh triggered');
+      const success = await this.refreshInstallationToken();
+      
+      if (!success) {
+        console.error('❌ Automatic token refresh failed - attempting fallback initialization');
+        // Try to reinitialize the entire service
+        try {
+          await this.initializeOctokit();
+        } catch (error) {
+          console.error('❌ Fallback initialization failed:', error.message);
+        }
+      }
+    }, refreshIntervalMs);
+    
+    console.log(`⏰ Automatic token refresh scheduled every ${refreshIntervalMs / 1000 / 60} minutes`);
+  }
+
   async ensureAuthenticated() {
     if (!this.initialized || !this.octokit) {
       throw new Error('GitHub service not properly initialized - check environment variables');
     }
+    
+    // Check if token is about to expire (within 5 minutes)
+    if (this.tokenExpiry && new Date() > new Date(this.tokenExpiry.getTime() - 5 * 60 * 1000)) {
+      console.log('⚠️ Token expiring soon, refreshing...');
+      await this.refreshInstallationToken();
+    }
   }
 
   async createCommit(message = 'Trigger CI/CD pipeline') {
-    try {
-      await this.ensureAuthenticated();
+    return await this.executeWithRetry(async () => {
+      // Use direct commit to master since GitHub App lacks PR permissions
+      console.log('🚀 Creating direct commit to master branch');
       
-      // Get the current master branch SHA
-      const { data: ref } = await this.octokit.rest.git.getRef({
-        owner: this.owner,
-        repo: this.repo,
-        ref: 'heads/master'
-      });
-
-      const currentSha = ref.object.sha;
-
-      // Get the current tree
-      const { data: commit } = await this.octokit.rest.git.getCommit({
-        owner: this.owner,
-        repo: this.repo,
-        commit_sha: currentSha
-      });
-
-      // Create a simple file change (update ci-status.txt with timestamp)
-      const content = `CI/CD Pipeline triggered at: ${new Date().toISOString()}\n`;
+      const content = `CI/CD Pipeline triggered at: ${new Date().toISOString()}\nCommit message: ${message}\n`;
       const contentEncoded = Buffer.from(content).toString('base64');
 
-      // Try to get existing file
       let existingFileSha = null;
       try {
         const { data: existingFile } = await this.octokit.rest.repos.getContent({
@@ -170,9 +225,9 @@ class GitHubService {
         existingFileSha = existingFile.sha;
       } catch (error) {
         // File doesn't exist, will create new one
+        console.log('📝 Creating new ci-status.txt file');
       }
 
-      // Create or update the file
       const { data: fileUpdate } = await this.octokit.rest.repos.createOrUpdateFileContents({
         owner: this.owner,
         repo: this.repo,
@@ -182,14 +237,49 @@ class GitHubService {
         ...(existingFileSha && { sha: existingFileSha })
       });
 
+      console.log(`✅ Commit created successfully: ${fileUpdate.commit.sha}`);
+      console.log(`🔗 Commit URL: ${fileUpdate.commit.html_url}`);
+
       return {
         success: true,
         commit: fileUpdate.commit,
         sha: fileUpdate.commit.sha,
-        message: message
+        message: message,
+        method: 'direct_commit'
       };
+    });
+  }
+
+  async executeWithRetry(operation) {
+    try {
+      await this.ensureAuthenticated();
+      return await operation();
     } catch (error) {
-      console.error('Error creating commit:', error);
+      // Check if it's an authentication error
+      if (error.status === 401 || error.status === 403 || error.message.includes('Bad credentials')) {
+        console.log('🔄 Authentication error detected, refreshing token and retrying...');
+        
+        // Refresh token and retry once
+        const refreshSuccess = await this.refreshInstallationToken();
+        if (refreshSuccess) {
+          try {
+            return await operation();
+          } catch (retryError) {
+            console.error('❌ Retry after token refresh failed:', retryError.message);
+            return {
+              success: false,
+              error: `Retry failed: ${retryError.message}`
+            };
+          }
+        } else {
+          return {
+            success: false,
+            error: 'Token refresh failed'
+          };
+        }
+      }
+      
+      console.error('❌ Operation failed:', error.message);
       return {
         success: false,
         error: error.message
@@ -198,9 +288,7 @@ class GitHubService {
   }
 
   async getWorkflowRuns(limit = 10) {
-    try {
-      await this.ensureAuthenticated();
-      
+    return await this.executeWithRetry(async () => {
       const { data } = await this.octokit.rest.actions.listWorkflowRunsForRepo({
         owner: this.owner,
         repo: this.repo,
@@ -220,19 +308,11 @@ class GitHubService {
           head_sha: run.head_sha
         }))
       };
-    } catch (error) {
-      console.error('Error fetching workflow runs:', error);
-      return {
-        success: false,
-        error: error.message
-      };
-    }
+    });
   }
 
   async getWorkflowRunLogs(runId) {
-    try {
-      await this.ensureAuthenticated();
-      
+    return await this.executeWithRetry(async () => {
       const { data } = await this.octokit.rest.actions.downloadWorkflowRunLogs({
         owner: this.owner,
         repo: this.repo,
@@ -243,19 +323,11 @@ class GitHubService {
         success: true,
         logs: data
       };
-    } catch (error) {
-      console.error('Error fetching workflow logs:', error);
-      return {
-        success: false,
-        error: error.message
-      };
-    }
+    });
   }
 
   async getWorkflowRunJobs(runId) {
-    try {
-      await this.ensureAuthenticated();
-      
+    return await this.executeWithRetry(async () => {
       const { data } = await this.octokit.rest.actions.listJobsForWorkflowRun({
         owner: this.owner,
         repo: this.repo,
@@ -281,13 +353,7 @@ class GitHubService {
           }))
         }))
       };
-    } catch (error) {
-      console.error('Error fetching workflow jobs:', error);
-      return {
-        success: false,
-        error: error.message
-      };
-    }
+    });
   }
 }
 

@@ -44,7 +44,12 @@ app.get('/health', async (req, res) => {
       github: github.initialized ? 'healthy' : 'unhealthy',
       websocket: wsManager ? 'healthy' : 'unhealthy',
       memory: process.memoryUsage(),
-      uptime: process.uptime()
+      uptime: process.uptime(),
+      token: {
+        expiry: github.tokenExpiry ? github.tokenExpiry.toISOString() : null,
+        refreshScheduled: !!github.refreshInterval,
+        minutesUntilExpiry: github.tokenExpiry ? Math.round((github.tokenExpiry.getTime() - Date.now()) / 60000) : null
+      }
     }
   };
 
